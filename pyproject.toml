@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pulseboard"
-version = "1.2.0"
-description = "A private Windows dashboard for system resources, top programs, and local Codex usage."
+version = "1.2.1"
+description = "A privacy-first Windows dashboard for system resources, top programs, and local Codex usage."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }

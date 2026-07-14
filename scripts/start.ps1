@@ -1,11 +1,15 @@
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
-$executable = Join-Path $root "PulseBoard.exe"
+$executables = @(
+    (Join-Path $root "PulseBoard.exe"),
+    (Join-Path $root "dist\PulseBoard.exe")
+)
+$executable = $executables | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 $venv = Join-Path $root ".venv"
 $python = Join-Path $venv "Scripts\python.exe"
 $pythonw = Join-Path $venv "Scripts\pythonw.exe"
 
-if (Test-Path $executable) {
+if ($executable) {
     Start-Process -FilePath $executable -WorkingDirectory $root
     exit 0
 }

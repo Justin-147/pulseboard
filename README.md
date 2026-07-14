@@ -1,56 +1,70 @@
 # PulseBoard
 
-[![Release](https://img.shields.io/github/v/release/Justin-147/pulseboard)](https://github.com/Justin-147/pulseboard/releases)
-[![Test](https://github.com/Justin-147/pulseboard/actions/workflows/test.yml/badge.svg)](https://github.com/Justin-147/pulseboard/actions/workflows/test.yml)
-[![Platform](https://img.shields.io/badge/platform-Windows-blue)](README.md)
-[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[简体中文](README.zh-CN.md) · English
 
-PulseBoard 是一个紧凑的原生 Windows 系统与 Codex 用量仪表盘。它不使用浏览器、不启动本地 Web 服务，以单个约 920 × 640 的窗口展示 CPU、GPU、内存、磁盘、网络、高占用程序，以及本机 Codex 额度与当前任务上下文。
+[![Release](https://img.shields.io/github/v/release/Justin-147/pulseboard?style=flat-square)](https://github.com/Justin-147/pulseboard/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/Justin-147/pulseboard/total?style=flat-square)](https://github.com/Justin-147/pulseboard/releases)
+[![Tests](https://img.shields.io/github/actions/workflow/status/Justin-147/pulseboard/test.yml?branch=main&style=flat-square&label=tests)](https://github.com/Justin-147/pulseboard/actions/workflows/test.yml)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?style=flat-square)](#requirements)
+[![License](https://img.shields.io/github/license/Justin-147/pulseboard?style=flat-square)](LICENSE)
 
-## 功能
+**A compact, privacy-first native Windows dashboard for CPU, GPU, memory, disk, network, top processes, and Codex usage — all in one window.**
 
-- 四个实时表盘：CPU、GPU、内存、系统盘。
-- 最近 60 秒 CPU、GPU、内存趋势。
-- 网络上下行与磁盘读写速度。
-- CPU 和内存占用前 5 的程序，自动合并同名进程。
-- Codex 额度：当前额度窗口、已用比例和重置时间。
-- Codex Token：最近一个日用量、累计用量。
-- Codex 上下文：识别当前或最近任务，显示 context token 使用比例。
-- NVIDIA 显卡可显示显存与温度；其他显卡使用 Windows 性能计数器。
-- 登录 Windows 后可自动弹出仪表盘。
-- 单实例运行：重复双击只会聚焦已有窗口。
-- 数据只在本机内存中处理，不上传、不写入历史数据库。
+[Download for Windows](https://github.com/Justin-147/pulseboard/releases/latest) · [Report a bug](https://github.com/Justin-147/pulseboard/issues/new?template=bug_report.yml) · [Request a feature](https://github.com/Justin-147/pulseboard/issues/new?template=feature_request.yml)
 
-## 快速开始
+![PulseBoard interface preview with sample data](assets/pulseboard-preview.svg)
 
-需要 Windows 10/11 与 Python 3.10 或更高版本。推荐使用 [python.org](https://www.python.org/downloads/windows/) 的标准安装程序，并保留默认的 Tcl/Tk 组件。
+> The preview uses sample values. PulseBoard processes live metrics locally and never uploads them.
 
-1. 下载并解压最新 [Release](https://github.com/Justin-147/pulseboard/releases)。
-2. 双击 `PulseBoard.exe`，或双击兼容入口 `Start-PulseBoard.bat`。
-3. Release 已包含独立运行程序，不需要浏览器、Python 或额外安装。
+## Why PulseBoard?
 
-如果从源代码启动，`Start-PulseBoard.bat` 会自动创建 Python 独立环境并安装唯一依赖 `psutil`。
+- **One compact native window:** no browser, local web server, account, or scrolling.
+- **Useful at a glance:** four gauges, a 60-second trend, live throughput, and top-five CPU/memory programs.
+- **Codex-aware:** shows quota, reset time, token totals, and the current task's context usage.
+- **Windows-friendly:** portable standalone executable, optional login startup, and single-instance behavior.
+- **Privacy-first:** metrics stay in memory on your computer; no telemetry and no history database.
 
-窗口可以缩放，默认尺寸为 920 × 640，最小尺寸为 800 × 590。所有核心内容都在同一页内，不需要滚动。
+## Quick start
 
-## 开机自启动
+1. Download and extract the latest [Windows release](https://github.com/Justin-147/pulseboard/releases/latest).
+2. Double-click `PulseBoard.exe`.
+3. Optional: double-click `Install-Autostart.bat` to open PulseBoard automatically after Windows login.
 
-- 双击 `Install-Autostart.bat`：为当前 Windows 用户启用自启动，下次登录后直接弹出仪表盘。
-- 双击 `Uninstall-Autostart.bat`：取消自启动。
+The release is self-contained: Python and a browser are **not** required.
 
-该操作不需要管理员权限，也不会创建系统服务。
+## Autostart behavior
 
-## GPU 兼容性
+PulseBoard **does not enable autostart by default**. Running `PulseBoard.exe` never changes your Windows startup settings.
 
-PulseBoard 优先调用 NVIDIA 驱动自带的 `nvidia-smi`，因此 NVIDIA 用户可获得利用率、显存和温度。AMD、Intel 及其他显卡会尝试读取 Windows GPU Engine 性能计数器；驱动未公开的温度或显存数据会显示为不可用，不使用估算值。
+- Run `Install-Autostart.bat` only when you want PulseBoard to open after Windows login.
+- Run `Uninstall-Autostart.bat` to disable it again. This does not remove PulseBoard or your files.
+- Autostart is configured for the current Windows user and does not require administrator privileges.
 
-## Codex 数据说明
+## Features
 
-PulseBoard 会自行启动一个隐藏的本机 Codex app-server 进程，读取账户额度与 Token 汇总；同时只读访问 Codex Desktop 活动日志和本地 session JSONL，以识别当前任务及上下文。它不依赖 `codex-usage-hud` 项目，也不会修改 Codex 数据。
+| Area | What you get |
+| --- | --- |
+| System | CPU, GPU, memory, and system-drive gauges |
+| Trends | CPU, GPU, and memory history for the latest 60 seconds |
+| Throughput | Network upload/download and disk read/write rates |
+| Programs | Top five CPU and memory consumers, grouped by executable name |
+| NVIDIA GPU | Utilization, VRAM, and temperature through `nvidia-smi` |
+| Other GPUs | Best-effort utilization through Windows performance counters |
+| Codex | Plan/quota window, reset time, daily/lifetime tokens, and task context |
+| Desktop | Resizable 920 × 640 default window, optional autostart, and single-instance focus |
 
-这些数据来自 Codex 本机内部接口与本地文件格式，不是稳定的公开 API。若 Codex 后续调整接口、日志路径或 session 格式，PulseBoard 可能需要同步更新。Codex 数据暂时不可用时，系统资源监控仍会继续运行。
+## Requirements
 
-## 本地开发与测试
+- Windows 10 or Windows 11 (x64 release build).
+- Codex Desktop/CLI is optional; system monitoring continues when Codex data is unavailable.
+
+## Codex data compatibility
+
+PulseBoard starts a hidden local Codex app-server process and reads local Codex Desktop activity/session files in read-only mode. It does not modify Codex data and does not depend on the older `codex-usage-hud` project.
+
+These are local implementation interfaces rather than a stable public API. A future Codex update may require a matching PulseBoard update.
+
+## Development
 
 ```powershell
 python -m venv .venv
@@ -59,11 +73,7 @@ python -m venv .venv
 .\.venv\Scripts\python -m pulseboard.desktop
 ```
 
-## 设计依据
-
-界面采用“表盘概览 → 短期趋势 → 高占用程序”的顺序：先判断资源压力，再观察变化，最后定位原因。百分比指标统一使用 0–100 范围，只在 75% 和 90% 阈值改变颜色。
-
-信息选择参考了 [Grafana 仪表盘最佳实践](https://grafana.com/docs/grafana/latest/visualizations/dashboards/build-dashboards/best-practices/)、[Glances 进程列表](https://glances.readthedocs.io/en/latest/aoa/ps.html)和 [Netdata 实时进程视图](https://learn.netdata.cloud/docs/live-view/processes)。
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 ## License
 

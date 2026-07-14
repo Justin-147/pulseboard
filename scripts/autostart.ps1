@@ -13,8 +13,19 @@ $shortcutPath = Join-Path $startup "PulseBoard.lnk"
 if ($Install) {
     $shell = New-Object -ComObject WScript.Shell
     $shortcut = $shell.CreateShortcut($shortcutPath)
-    $shortcut.TargetPath = "powershell.exe"
-    $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$(Join-Path $PSScriptRoot 'start.ps1')`""
+    $executables = @(
+        (Join-Path $root "PulseBoard.exe"),
+        (Join-Path $root "dist\PulseBoard.exe")
+    )
+    $executable = $executables | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if ($executable) {
+        $shortcut.TargetPath = $executable
+        $shortcut.Arguments = ""
+        $shortcut.IconLocation = "$executable,0"
+    } else {
+        $shortcut.TargetPath = "powershell.exe"
+        $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$(Join-Path $PSScriptRoot 'start.ps1')`""
+    }
     $shortcut.WorkingDirectory = $root
     $shortcut.Description = "PulseBoard local system resource dashboard"
     $shortcut.Save()

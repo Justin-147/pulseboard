@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.1 - 2026-07-14
+
+- 明确开机自启动默认关闭，只有主动运行 `Install-Autostart.bat` 后才会启用。
+- 自启动快捷方式优先直接运行已打包的 `PulseBoard.exe`，避免隐藏的 PowerShell/Python 回退失败。
+- 同时兼容 Release 解压目录和源码仓库的 `dist` 构建目录。
+- 增加中英文 README、隐私安全的示例界面预览、下载入口与 Issue 模板。
+
 ## 1.2.0 - 2026-07-14
 
 - 合并 `codex-usage-hud` 的核心能力，在原生单页中显示 Codex 额度和上下文。

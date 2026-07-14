@@ -1,0 +1,40 @@
+name: Bug report
+description: Report a reproducible PulseBoard problem
+title: "[Bug] "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting a problem. Please remove private computer, account, process, or Codex session information before submitting.
+  - type: input
+    id: version
+    attributes:
+      label: PulseBoard version
+      placeholder: v1.2.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Windows and GPU
+      placeholder: Windows 11 24H2, NVIDIA RTX 4060
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: Describe the smallest sequence that reproduces the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Sanitized screenshots or logs only. Do not include account or session data.
