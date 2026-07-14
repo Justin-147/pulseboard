@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pulseboard"
+version = "1.0.0"
+description = "A private, real-time Windows resource dashboard for CPU, GPU, memory, disk, network, and top programs."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Justin-147" }]
+dependencies = ["psutil>=5.9,<8"]
+
+[project.scripts]
+pulseboard = "pulseboard.server:main"
+
+[tool.setuptools.package-data]
+pulseboard = ["web/*"]
+
