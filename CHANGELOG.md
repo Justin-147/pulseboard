@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 - 2026-07-14
+
+- 合并 `codex-usage-hud` 的核心能力，在原生单页中显示 Codex 额度和上下文。
+- PulseBoard 直接连接本机 Codex app-server，不依赖旧 HUD 或其中的 `status.json`。
+- 显示当前额度窗口、已用比例、重置时间、最近日/累计 Token。
+- 从 Codex Desktop 日志与本地 session JSONL 识别当前任务及上下文使用比例。
+- Codex 采集失败时独立降级，不影响 CPU、GPU、内存等系统监控。
+
 ## 1.1.0 - 2026-07-14
 
 - 将网页界面替换为约 920 × 640 的原生 Windows 单页仪表盘。

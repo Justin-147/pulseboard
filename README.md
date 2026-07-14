@@ -5,7 +5,7 @@
 [![Platform](https://img.shields.io/badge/platform-Windows-blue)](README.md)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-PulseBoard 是一个紧凑的原生 Windows 系统资源仪表盘。它不使用浏览器、不启动本地 Web 服务，以单个约 920 × 640 的窗口展示 CPU、GPU、内存、磁盘、网络和高占用程序。
+PulseBoard 是一个紧凑的原生 Windows 系统与 Codex 用量仪表盘。它不使用浏览器、不启动本地 Web 服务，以单个约 920 × 640 的窗口展示 CPU、GPU、内存、磁盘、网络、高占用程序，以及本机 Codex 额度与当前任务上下文。
 
 ## 功能
 
@@ -13,6 +13,9 @@ PulseBoard 是一个紧凑的原生 Windows 系统资源仪表盘。它不使用
 - 最近 60 秒 CPU、GPU、内存趋势。
 - 网络上下行与磁盘读写速度。
 - CPU 和内存占用前 5 的程序，自动合并同名进程。
+- Codex 额度：当前额度窗口、已用比例和重置时间。
+- Codex Token：最近一个日用量、累计用量。
+- Codex 上下文：识别当前或最近任务，显示 context token 使用比例。
 - NVIDIA 显卡可显示显存与温度；其他显卡使用 Windows 性能计数器。
 - 登录 Windows 后可自动弹出仪表盘。
 - 单实例运行：重复双击只会聚焦已有窗口。
@@ -40,6 +43,12 @@ PulseBoard 是一个紧凑的原生 Windows 系统资源仪表盘。它不使用
 ## GPU 兼容性
 
 PulseBoard 优先调用 NVIDIA 驱动自带的 `nvidia-smi`，因此 NVIDIA 用户可获得利用率、显存和温度。AMD、Intel 及其他显卡会尝试读取 Windows GPU Engine 性能计数器；驱动未公开的温度或显存数据会显示为不可用，不使用估算值。
+
+## Codex 数据说明
+
+PulseBoard 会自行启动一个隐藏的本机 Codex app-server 进程，读取账户额度与 Token 汇总；同时只读访问 Codex Desktop 活动日志和本地 session JSONL，以识别当前任务及上下文。它不依赖 `codex-usage-hud` 项目，也不会修改 Codex 数据。
+
+这些数据来自 Codex 本机内部接口与本地文件格式，不是稳定的公开 API。若 Codex 后续调整接口、日志路径或 session 格式，PulseBoard 可能需要同步更新。Codex 数据暂时不可用时，系统资源监控仍会继续运行。
 
 ## 本地开发与测试
 

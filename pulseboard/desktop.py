@@ -11,6 +11,7 @@ from collections import deque
 from tkinter import font as tkfont
 from typing import Any
 
+from .codex_collector import CodexCollector
 from .collector import SystemCollector
 
 
@@ -48,6 +49,18 @@ def format_uptime(seconds: int) -> str:
     return f"{days}天 {hours}小时" if days else f"{hours}小时 {minutes}分"
 
 
+def format_compact_number(value: float | int | None) -> str:
+    if value is None:
+        return "—"
+    number = float(value)
+    for divisor, suffix in ((1_000_000_000, "B"), (1_000_000, "M"), (1_000, "K")):
+        if abs(number) >= divisor:
+            scaled = number / divisor
+            digits = 1 if scaled >= 10 else 2
+            return f"{scaled:.{digits}f}{suffix}"
+    return str(int(number))
+
+
 def pressure_color(value: float | int | None, normal: str) -> str:
     number = float(value or 0)
     if number >= 90:
@@ -59,7 +72,7 @@ def pressure_color(value: float | int | None, normal: str) -> str:
 
 class Gauge(tk.Canvas):
     def __init__(self, master: tk.Misc, label: str, color: str) -> None:
-        super().__init__(master, bg=PANEL, highlightthickness=0, height=154, width=190)
+        super().__init__(master, bg=PANEL, highlightthickness=0, height=145, width=190)
         self.label = label
         self.base_color = color
         self.value: float | None = None
@@ -170,11 +183,11 @@ class ProcessList(tk.Frame):
         self.rows.pack(fill="both", expand=True)
         self.row_widgets: list[tuple[tk.Label, tk.Label, tk.Label, tk.Label]] = []
         for index in range(5):
-            frame = tk.Frame(self.rows, bg=PANEL, height=34)
+            frame = tk.Frame(self.rows, bg=PANEL, height=32)
             frame.pack(fill="x")
             frame.pack_propagate(False)
             badge = tk.Label(frame, text="", width=2, bg="#182126", fg=CYAN, font=("Segoe UI", 8, "bold"))
-            badge.pack(side="left", padx=(0, 8), pady=5)
+            badge.pack(side="left", padx=(0, 8), pady=4)
             name_label = tk.Label(frame, text="", bg=PANEL, fg=TEXT, anchor="w", font=("Segoe UI", 9))
             name_label.pack(side="left", fill="x", expand=True)
             value_label = tk.Label(frame, text="", width=10, bg=PANEL, fg=TEXT, anchor="e", font=("Segoe UI", 9, "bold"))
@@ -204,6 +217,68 @@ class ProcessList(tk.Frame):
                 instances_label.configure(text="")
 
 
+class CodexPanel(tk.Frame):
+    def __init__(self, master: tk.Misc) -> None:
+        super().__init__(master, bg=PANEL, padx=12, pady=4)
+        header = tk.Frame(self, bg=PANEL)
+        header.pack(fill="x")
+        tk.Label(header, text="Codex 用量", bg=PANEL, fg=TEXT, font=("Segoe UI", 9, "bold")).pack(side="left")
+        self.status = tk.Label(header, text="连接中", bg=PANEL, fg=MUTED, font=("Segoe UI", 7, "bold"))
+        self.status.pack(side="right")
+        self.thread = tk.Label(self, text="正在读取当前任务", bg=PANEL, fg=MUTED, anchor="w", font=("Segoe UI", 7))
+        self.thread.pack(fill="x", pady=(0, 2))
+        self.quota_label, self.quota_value, self.quota_fill = self._meter(CYAN)
+        self.context_label, self.context_value, self.context_fill = self._meter(VIOLET)
+        self.tokens = tk.Label(self, text="最近日 —  ·  累计 —", bg=PANEL, fg=MUTED, anchor="w", font=("Segoe UI", 7))
+        self.tokens.pack(fill="x", pady=(1, 0))
+
+    def _meter(self, color: str) -> tuple[tk.Label, tk.Label, tk.Frame]:
+        line = tk.Frame(self, bg=PANEL)
+        line.pack(fill="x")
+        label = tk.Label(line, text="—", bg=PANEL, fg=MUTED, anchor="w", font=("Segoe UI", 7))
+        label.pack(side="left")
+        value = tk.Label(line, text="—", bg=PANEL, fg=TEXT, anchor="e", font=("Segoe UI", 7, "bold"))
+        value.pack(side="right")
+        track = tk.Frame(self, bg=LINE, height=3)
+        track.pack(fill="x", pady=(0, 1))
+        track.pack_propagate(False)
+        fill = tk.Frame(track, bg=color)
+        fill.place(x=0, y=0, relheight=1, relwidth=0)
+        return label, value, fill
+
+    @staticmethod
+    def _set_fill(fill: tk.Frame, percent: float | int | None) -> None:
+        width = max(0.0, min(1.0, float(percent or 0) / 100))
+        fill.place_configure(relwidth=width)
+
+    def update_value(self, data: dict[str, Any]) -> None:
+        connected = bool(data.get("connected"))
+        plan = str(data.get("plan") or "").upper()
+        self.status.configure(text=(f"{plan} · 已连接" if plan else "已连接") if connected else "暂不可用", fg=CYAN if connected else ORANGE)
+        context = data.get("context") or {}
+        thread_name = str(context.get("thread_name") or "未找到当前任务").replace("\n", " ")
+        self.thread.configure(text=thread_name[:34] + ("…" if len(thread_name) > 34 else ""))
+        quota = data.get("quota") or {}
+        duration = int(quota.get("window_minutes") or 0)
+        duration_text = f"{duration // 1440}天额度" if duration >= 1440 else f"{max(1, duration // 60)}小时额度"
+        reset_at = quota.get("resets_at")
+        reset_text = time.strftime("%m-%d %H:%M", time.localtime(reset_at)) if reset_at else "重置时间未知"
+        quota_percent = quota.get("used_percent")
+        self.quota_label.configure(text=f"{duration_text} · {reset_text}")
+        self.quota_value.configure(text="—" if quota_percent is None else f"已用 {float(quota_percent):.0f}%")
+        self._set_fill(self.quota_fill, quota_percent)
+        context_percent = context.get("used_percent")
+        last_tokens = context.get("last_tokens")
+        window_tokens = context.get("window_tokens")
+        self.context_label.configure(text=f"上下文 {format_compact_number(last_tokens)}/{format_compact_number(window_tokens)}")
+        self.context_value.configure(text="—" if context_percent is None else f"{float(context_percent):.0f}%")
+        self._set_fill(self.context_fill, context_percent)
+        tokens = data.get("tokens") or {}
+        self.tokens.configure(
+            text=f"最近日 {format_compact_number(tokens.get('latest_daily'))}  ·  累计 {format_compact_number(tokens.get('lifetime'))}"
+        )
+
+
 class PulseBoardApp:
     def __init__(self, root: tk.Tk) -> None:
         self.root = root
@@ -215,6 +290,7 @@ class PulseBoardApp:
         self.queue: queue.Queue[dict[str, Any]] = queue.Queue(maxsize=2)
         self.running = True
         self.collector = SystemCollector()
+        self.codex_collector = CodexCollector()
         self._build()
         threading.Thread(target=self._sample_loop, name="pulseboard-ui-sampler", daemon=True).start()
         self.root.after(100, self._consume)
@@ -257,15 +333,16 @@ class PulseBoardApp:
         for column, gauge in enumerate(self.gauges.values()):
             gauge.grid(row=0, column=column, sticky="nsew", padx=4, pady=2)
 
-        middle = tk.Frame(body, bg=BG, height=106)
+        middle = tk.Frame(body, bg=BG, height=118)
         middle.pack(fill="x", pady=(0, 8))
         middle.pack_propagate(False)
-        trend_panel = self._panel(middle)
-        trend_panel.pack(side="left", fill="both", expand=True, padx=(0, 8))
-        self.trend = TrendCanvas(trend_panel)
-        self.trend.pack(fill="both", expand=True, padx=6, pady=5)
-        flow = self._panel(middle, width=320)
-        flow.pack(side="right", fill="y")
+        codex_container = self._panel(middle, width=320)
+        codex_container.pack(side="right", fill="y")
+        codex_container.pack_propagate(False)
+        self.codex_panel = CodexPanel(codex_container)
+        self.codex_panel.pack(fill="both", expand=True)
+        flow = self._panel(middle, width=205)
+        flow.pack(side="right", fill="y", padx=(0, 8))
         flow.pack_propagate(False)
         tk.Label(flow, text="实时吞吐", bg=PANEL, fg=TEXT, font=("Segoe UI", 9, "bold")).pack(anchor="w", padx=12, pady=(5, 0))
         values = tk.Frame(flow, bg=PANEL)
@@ -279,6 +356,10 @@ class PulseBoardApp:
             label.pack(anchor="w")
             self.flow_labels[key] = label
         values.grid_columnconfigure((0, 1), weight=1)
+        trend_panel = self._panel(middle)
+        trend_panel.pack(side="left", fill="both", expand=True, padx=(0, 8))
+        self.trend = TrendCanvas(trend_panel)
+        self.trend.pack(fill="both", expand=True, padx=6, pady=5)
 
         lists = tk.Frame(body, bg=BG)
         lists.pack(fill="both", expand=True)
@@ -306,6 +387,7 @@ class PulseBoardApp:
             started = time.monotonic()
             try:
                 snapshot = self.collector.snapshot()
+                snapshot["codex"] = self.codex_collector.snapshot()
                 while self.queue.full():
                     try:
                         self.queue.get_nowait()
@@ -352,9 +434,11 @@ class PulseBoardApp:
             gpu_detail += f' · 显存 {format_bytes(gpu["memory_used"])} / {format_bytes(gpu["memory_total"])}'
         self.gpu_label.configure(text=gpu_detail)
         self.process_label.configure(text=f'{data["processes"]["count"]} 个进程 · 数据仅在本机处理')
+        self.codex_panel.update_value(data.get("codex") or {})
 
     def close(self) -> None:
         self.running = False
+        self.codex_collector.close()
         self.root.destroy()
 
 
@@ -393,6 +477,7 @@ def main() -> None:
         root.mainloop()
     finally:
         app.running = False
+        app.codex_collector.close()
         if mutex and platform.system() == "Windows":
             ctypes.windll.kernel32.ReleaseMutex(mutex)
             ctypes.windll.kernel32.CloseHandle(mutex)
