@@ -1,21 +1,13 @@
-param(
-    [switch]$NoBrowser
-)
-
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
+$executable = Join-Path $root "PulseBoard.exe"
 $venv = Join-Path $root ".venv"
 $python = Join-Path $venv "Scripts\python.exe"
 $pythonw = Join-Path $venv "Scripts\pythonw.exe"
-$url = "http://127.0.0.1:17865"
 
-function Test-PulseBoard {
-    try {
-        $result = Invoke-RestMethod -Uri "$url/api/health" -TimeoutSec 1
-        return $result.status -eq "ok"
-    } catch {
-        return $false
-    }
+if (Test-Path $executable) {
+    Start-Process -FilePath $executable -WorkingDirectory $root
+    exit 0
 }
 
 if (-not (Test-Path $python)) {
@@ -25,7 +17,7 @@ if (-not (Test-Path $python)) {
 
 $savedErrorPreference = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
-& $python -c "import psutil" 2>$null
+& $python -c "import psutil, tkinter" 2>$null
 $dependencyStatus = $LASTEXITCODE
 $ErrorActionPreference = $savedErrorPreference
 if ($dependencyStatus -ne 0) {
@@ -34,17 +26,16 @@ if ($dependencyStatus -ne 0) {
     if ($LASTEXITCODE -ne 0) { throw "Dependency installation failed. Check the internet connection and try again." }
 }
 
-if (-not (Test-PulseBoard)) {
-    $process = Start-Process -FilePath $pythonw -ArgumentList @("-m", "pulseboard.server", "--port", "17865") -WorkingDirectory $root -PassThru
-    $ready = $false
-    foreach ($attempt in 1..30) {
-        Start-Sleep -Milliseconds 200
-        if (Test-PulseBoard) { $ready = $true; break }
-        if ($process.HasExited) { break }
-    }
-    if (-not $ready) { throw "PulseBoard failed to start. Check whether port 17865 is already in use." }
+$ErrorActionPreference = "Continue"
+& $python -c "import tkinter" 2>$null
+$tkStatus = $LASTEXITCODE
+$ErrorActionPreference = $savedErrorPreference
+if ($tkStatus -ne 0) {
+    throw "Tkinter is missing. Install Python from python.org with the optional Tcl/Tk component enabled."
 }
 
-if (-not $NoBrowser) {
-    Start-Process $url
+$process = Start-Process -FilePath $pythonw -ArgumentList @("-m", "pulseboard.desktop") -WorkingDirectory $root -PassThru
+Start-Sleep -Milliseconds 900
+if ($process.HasExited -and $process.ExitCode -ne 0) {
+    throw "PulseBoard failed to start. Run .venv\Scripts\python.exe -m pulseboard.desktop to see details."
 }

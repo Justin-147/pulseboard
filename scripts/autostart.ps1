@@ -14,11 +14,11 @@ if ($Install) {
     $shell = New-Object -ComObject WScript.Shell
     $shortcut = $shell.CreateShortcut($shortcutPath)
     $shortcut.TargetPath = "powershell.exe"
-    $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$(Join-Path $PSScriptRoot 'start.ps1')`" -NoBrowser"
+    $shortcut.Arguments = "-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File `"$(Join-Path $PSScriptRoot 'start.ps1')`""
     $shortcut.WorkingDirectory = $root
     $shortcut.Description = "PulseBoard local system resource dashboard"
     $shortcut.Save()
-    Write-Host "Autostart enabled. After Windows login, visit http://127.0.0.1:17865."
+    Write-Host "Autostart enabled. PulseBoard will open after Windows login."
     exit 0
 }
 

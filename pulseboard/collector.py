@@ -51,12 +51,8 @@ class SystemCollector:
             "source": "sampling",
         }
         self._program_cache: tuple[list[dict[str, Any]], list[dict[str, Any]], int] = ([], [], 0)
+        self._process_times: dict[int, tuple[float, float]] = {}
         psutil.cpu_percent(interval=None, percpu=True)
-        for process in psutil.process_iter(["pid"]):
-            try:
-                process.cpu_percent(interval=None)
-            except (psutil.Error, OSError):
-                pass
         threading.Thread(target=self._gpu_loop, name="pulseboard-gpu", daemon=True).start()
         threading.Thread(target=self._program_loop, name="pulseboard-programs", daemon=True).start()
 
@@ -138,15 +134,26 @@ class SystemCollector:
         return result
 
     def _programs(self) -> tuple[list[dict[str, Any]], list[dict[str, Any]], int]:
+        sampled_at = time.monotonic()
+        logical_cores = max(psutil.cpu_count(logical=True) or 1, 1)
+        next_process_times: dict[int, tuple[float, float]] = {}
         grouped: dict[str, dict[str, Any]] = defaultdict(
             lambda: {"cpu_percent": 0.0, "memory_bytes": 0, "instances": 0, "pids": []}
         )
         count = 0
-        for process in psutil.process_iter(["pid", "name", "memory_info"]):
+        for process in psutil.process_iter(["pid", "name", "memory_info", "cpu_times"]):
             try:
                 name = (process.info.get("name") or f"PID {process.pid}").strip()
+                if process.pid == 0 or name.lower() == "system idle process":
+                    continue
                 stats = grouped[name]
-                stats["cpu_percent"] += process.cpu_percent(interval=None) / max(psutil.cpu_count() or 1, 1)
+                cpu_times = process.info.get("cpu_times")
+                cpu_total = (cpu_times.user + cpu_times.system) if cpu_times else 0.0
+                previous = self._process_times.get(process.pid)
+                if previous:
+                    elapsed = max(sampled_at - previous[0], 0.001)
+                    stats["cpu_percent"] += max(0.0, cpu_total - previous[1]) / elapsed * 100 / logical_cores
+                next_process_times[process.pid] = (sampled_at, cpu_total)
                 memory_info = process.info.get("memory_info")
                 stats["memory_bytes"] += memory_info.rss if memory_info else 0
                 stats["instances"] += 1
@@ -155,6 +162,8 @@ class SystemCollector:
                 count += 1
             except (psutil.Error, OSError, ValueError):
                 continue
+
+        self._process_times = next_process_times
 
         rows = [
             {
